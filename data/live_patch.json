@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "app_version": "v21.0",
- "updated_at": "2026-11-21T09:26:47+09:00",
+ "updated_at": "2026-11-21T09:50:00+09:00",
  "data_through": "2026-11-21",
  "source": "KBO 공식 기록실·선수 이동 현황, 구단 공식 발표, 연합뉴스",
  "note": "앱(v21.0 이상)이 열릴 때 이 파일을 읽어 아래 항목만 덮어쓴다. 빈 배열은 변경 없음. player_patches 는 pid 단독 매칭(같은 pid가 1군·퓨처스에 있으면 league 로 구분), notices 는 date+player 로 중복을 막는다. 확인된 공식 발표만 적는다.",
@@ -12,7 +12,7 @@
    "league": "KBO1",
    "team": "키움",
    "status": "트레이드",
-   "number": "",
+   "number": "42",
    "prev_team": "롯데",
    "move_date": "2026-11-20",
    "move_note": "롯데↔키움 1대1 트레이드(외야수 임지열) · 롯데·키움 공식 발표 2026-11-20 16:03 · 키움 등번호 미정"
