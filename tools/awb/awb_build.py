@@ -402,7 +402,7 @@ def build(schedule_path='raw/schedule.json', raw_dir='raw', names_path='names.js
         'schema': 1,
         'competition': {
             'id': 'awb2026', 'name': '2026 아시아 윈터 베이스볼 리그',
-            'period': '2026-11-14 ~ 2026-12-06', 'host': '대만 프로야구(CPBL) 주관',
+            'period': '2026-11-14 ~ 2026-12-06', 'host': '대만 프로야구 주관',
             'note': 'KBO 연합팀은 14경기(정규 50경기 중) 출전 · 플레이오프 미참가',
         },
         'meta': {
