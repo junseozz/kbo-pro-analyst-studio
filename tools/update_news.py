@@ -88,14 +88,23 @@ sha = hashlib.sha256(ex_bytes).hexdigest()
 mf = json.load(open(mf_path, encoding='utf-8'))
 mf['updated_at'] = now_iso
 mf['checked_at'] = now_iso
+# 청크 식별자는 id 다(과거 name 으로 비교해 extra 의 sha256·bytes 가 갱신되지 않아
+# 앱이 "바뀐 청크 없음"으로 판단하고 새 뉴스를 영영 받지 않던 결함을 고쳤다 — 2026-11-21)
 for ch in mf.get('chunks', []):
-    if ch.get('name') == 'extra':
+    if ch.get('id') == 'extra' or ch.get('name') == 'extra':
         ch['bytes'] = len(ex_bytes)
         ch['sha256'] = sha
+        ch['updated_at'] = now_iso
         ch['js_bytes'] = len(ex_js_bytes)
+mf['total_bytes'] = sum(int(c.get('bytes') or 0) for c in mf.get('chunks', []))
 with open(mf_path, 'w', encoding='utf-8') as f:
     json.dump(mf, f, ensure_ascii=False, indent=1)
     f.write('\n')
+# file:// 환경은 manifest.json fetch 가 막혀 raw.githack 의 manifest.js 를 쓴다.
+# 여기서 함께 갱신하지 않으면 그 경로로는 옛 manifest 가 계속 내려간다.
+with open(os.path.join(repo, 'data/manifest.js'), 'w', encoding='utf-8') as f:
+    f.write('window.V211_RECEIVE&&window.V211_RECEIVE('
+            + json.dumps(mf, ensure_ascii=False, separators=(',', ':')) + ');')
 
 lp = json.load(open(lp_path, encoding='utf-8'))
 lp['checked_at'] = now_iso
