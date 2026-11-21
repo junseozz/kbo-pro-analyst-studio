@@ -1,7 +1,7 @@
 {
  "schema_version": 2,
  "app_version": "v21.2",
- "updated_at": "2026-11-21T18:24:21+09:00",
+ "updated_at": "2026-11-21T18:24:53+09:00",
  "data_through": "2026-11-21",
  "note": "앱(v21.1 이상)이 맨 먼저 이 파일을 읽어 sha256 이 바뀐 청크만 내려받는다. 청크 본문은 KBO_DATA 전 영역 + 앱 내장 전역 데이터셋 전체이며, 앱은 제자리(in-place)로 덮어쓴다. 각 청크는 <id>.json(정본) 과 같은 내용의 <id>.js(JSONP, file:// 대비) 두 형태로 올라간다.",
  "chunks": [
@@ -99,7 +99,7 @@
  ],
  "live_patch": null,
  "total_bytes": 27113853,
- "checked_at": "2026-11-21T18:24:21+09:00",
+ "checked_at": "2026-11-21T18:24:53+09:00",
  "intl_live": {
   "bytes": 2646,
   "sha256": "141e1f483e1cfe2787760530f00581a080baa899cd65ebdfe0e73179020d0f06",

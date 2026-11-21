@@ -22,7 +22,7 @@ def fetch_gnews(q):
         xml_data = r.read()
     root = ET.fromstring(xml_data)
     out = []
-    for item in root.findall('./channel/item')[:35]:
+    for item in root.findall('./channel/item')[:40]:
         title = (item.findtext('title') or '').strip()
         link = (item.findtext('link') or '').strip()
         pub = (item.findtext('pubDate') or '').strip()
@@ -48,16 +48,15 @@ def fetch_gnews(q):
             'time': dt.strftime('%H:%M'),
             'ts': int(dt.strftime('%Y%m%d%H%M')),
             'summary': '',
-            'q': q
+            'q': q.replace(' when:1d', '')
         })
     return out
 
-new_kbo = fetch_gnews('KBO 프로야구')
-new_fa = fetch_gnews('KBO FA 트레이드')
-new_awb = fetch_gnews('아시아 윈터 베이스볼 KBO')
+new_kbo = fetch_gnews('KBO when:1d') + fetch_gnews('프로야구 when:1d') + fetch_gnews('KBO FA 트레이드 when:1d')
+new_awb = fetch_gnews('아시아 윈터 베이스볼 when:1d') + fetch_gnews('KBO 연합팀 when:1d')
 
 merged_gnews, seen = [], set()
-for item in sorted(new_kbo + new_fa + (ns.get('gnews') or []), key=lambda x: x.get('ts', 0), reverse=True):
+for item in sorted(new_kbo + (ns.get('gnews') or []), key=lambda x: x.get('ts', 0), reverse=True):
     t = re.sub(r'\s+', ' ', item.get('title', '')).strip()
     if not t or t in seen:
         continue
@@ -110,5 +109,5 @@ with open(lp_js_path, 'w', encoding='utf-8') as f:
     f.write(f'window.V210_RECEIVE && window.V210_RECEIVE({lp_min});\n')
 
 print('Updated V164_NEWS_SNAPSHOT.built:', ns['built'])
-print('gnews top 3:', [(x['date'], x['time'], x['title'][:35]) for x in ns['gnews'][:3]])
+print('gnews top 5:', [(x['date'], x['time'], x['title'][:35]) for x in ns['gnews'][:5]])
 print('extra sha256:', sha, 'bytes:', len(ex_bytes))
