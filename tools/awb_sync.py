@@ -134,7 +134,8 @@ def main():
         changed = body != last_body
         now = time.time()
         if changed or now - last_commit > 120:
-            git('add', 'data/intl_live.json', 'data/intl_live.js', 'data/manifest.json', 'data/manifest.js')
+            git('add', 'data/intl_live.json', 'data/intl_live.js', 'data/manifest.json', 'data/manifest.js',
+                'tools/awb/names.json')
             r = git('-c', 'user.name=kbo-studio-bot', '-c', 'user.email=actions@users.noreply.github.com',
                     'commit', '-m', 'AWB live %s' % data['meta']['checked_at'])
             if r.returncode == 0:
@@ -149,7 +150,8 @@ def main():
             break
         time.sleep(25)
     # 마지막 상태도 남긴다
-    git('add', 'data/intl_live.json', 'data/intl_live.js', 'data/manifest.json', 'data/manifest.js')
+    git('add', 'data/intl_live.json', 'data/intl_live.js', 'data/manifest.json', 'data/manifest.js',
+        'tools/awb/names.json')
     r = git('-c', 'user.name=kbo-studio-bot', '-c', 'user.email=actions@users.noreply.github.com',
             'commit', '-m', 'AWB live %s' % json.loads(txt)['meta']['checked_at'])
     if r.returncode == 0:
