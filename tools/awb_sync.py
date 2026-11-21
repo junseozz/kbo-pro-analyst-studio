@@ -11,7 +11,7 @@ import json, os, sys, time, subprocess, datetime, hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 AWB = os.path.join(HERE, 'awb')
-ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
+ROOT = os.path.abspath(os.path.join(HERE, '..'))
 sys.path.insert(0, AWB)
 sys.path.insert(0, HERE)
 
@@ -135,7 +135,8 @@ def main():
         now = time.time()
         if changed or now - last_commit > 120:
             git('add', 'data/intl_live.json', 'data/intl_live.js', 'data/manifest.json', 'data/manifest.js')
-            r = git('commit', '-m', 'AWB live %s' % data['meta']['checked_at'])
+            r = git('-c', 'user.name=kbo-studio-bot', '-c', 'user.email=actions@users.noreply.github.com',
+                    'commit', '-m', 'AWB live %s' % data['meta']['checked_at'])
             if r.returncode == 0:
                 for _ in range(3):
                     p = git('push', 'origin', 'HEAD:main')
