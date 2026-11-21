@@ -1,7 +1,7 @@
 {
  "schema_version": 2,
- "app_version": "v21.3",
- "updated_at": "2026-11-21T18:50:59+09:00",
+ "app_version": "v21.4",
+ "updated_at": "2026-11-21T19:04:55+09:00",
  "data_through": "2026-11-21",
  "note": "앱(v21.1 이상)이 맨 먼저 이 파일을 읽어 sha256 이 바뀐 청크만 내려받는다. 청크 본문은 KBO_DATA 전 영역 + 앱 내장 전역 데이터셋 전체이며, 앱은 제자리(in-place)로 덮어쓴다. 각 청크는 <id>.json(정본) 과 같은 내용의 <id>.js(JSONP, file:// 대비) 두 형태로 올라간다.",
  "chunks": [
@@ -9,9 +9,9 @@
    "id": "core",
    "path": "data/core.json",
    "js": "data/core.js",
-   "sha256": "34f9752a4d69749eab848438e08695a09941d0c517ca248a2984b5637f0fcf6d",
-   "bytes": 3990220,
-   "updated_at": "2026-11-21T10:26:41+09:00",
+   "sha256": "7928482a9d4d1cfc874c3d346391249e07dd64dd619285f98e549bcfbb011974",
+   "bytes": 3991180,
+   "updated_at": "2026-11-21T19:00:49+09:00",
    "globals": [
     "KBO_DATA"
    ],
@@ -50,9 +50,9 @@
    "id": "season",
    "path": "data/season.json",
    "js": "data/season.js",
-   "sha256": "84cb34364320457dcb28a023b254f87401747b26076a181619f3d7044948e56f",
-   "bytes": 8921716,
-   "updated_at": "2026-11-21T10:26:41+09:00",
+   "sha256": "c2a1d7ce30e1acea6a80ce2dce8e6f079ec210328ea0de4f169282d286a29953",
+   "bytes": 8922503,
+   "updated_at": "2026-11-21T19:04:55+09:00",
    "globals": [
     "V159_YEARS",
     "V151_SITUATION",
@@ -98,7 +98,7 @@
   }
  ],
  "live_patch": null,
- "total_bytes": 27124115,
+ "total_bytes": 27125862,
  "checked_at": "2026-11-21T18:24:53+09:00",
  "intl_live": {
   "bytes": 2646,
