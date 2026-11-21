@@ -148,6 +148,12 @@ def main():
         if loop <= 0 or now - t0 > loop:
             break
         time.sleep(25)
+    # 마지막 상태도 남긴다
+    git('add', 'data/intl_live.json', 'data/intl_live.js', 'data/manifest.json', 'data/manifest.js')
+    r = git('-c', 'user.name=kbo-studio-bot', '-c', 'user.email=actions@users.noreply.github.com',
+            'commit', '-m', 'AWB live %s' % json.loads(txt)['meta']['checked_at'])
+    if r.returncode == 0:
+        git('push', 'origin', 'HEAD:main')
 
 
 if __name__ == '__main__':
