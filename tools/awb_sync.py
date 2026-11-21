@@ -18,6 +18,43 @@ sys.path.insert(0, HERE)
 import awb_fetch
 import awb_build
 import awb_build_names
+import requests
+
+NTFY = os.environ.get('AWB_NTFY', 'https://ntfy.sh')
+TOPIC = os.environ.get('AWB_TOPIC', 'kbo-awb-live-8f3a2c1d')
+
+
+def live_strip(data):
+    """빠른 채널(ntfy)용 압축 상태 — 4KB 제한 안쪽"""
+    g = None
+    for x in data.get('games', []):
+        if x.get('status') == 'live':
+            g = x
+            break
+    if g is None:
+        return {'v': 1, 'at': data['meta']['checked_at'], 'st': data['meta']['state']}
+    st = g.get('state') or {}
+    last = (g.get('plays') or [{}])[-1]
+    wp = (g.get('wp') or [{}])[-1]
+    return {'v': 1, 'at': data['meta']['checked_at'], 'st': 'live', 'no': g['no'],
+            'inn': st.get('inn'), 'half': st.get('half'), 'o': st.get('outs'),
+            'b': st.get('b'), 's': st.get('s'),
+            'bases': ''.join('1' if b else '0' for b in (st.get('bases') or [])),
+            'va': (g.get('score') or {}).get('away'), 'ho': (g.get('score') or {}).get('home'),
+            'bat': st.get('batter'), 'pit': st.get('pitcher'),
+            'wp': wp.get('p'), 'last': last.get('batter', '') + ' ' + (last.get('act') or '')}
+
+
+def publish(data):
+    try:
+        body = json.dumps(live_strip(data), ensure_ascii=False, separators=(',', ':'))
+        if len(body.encode()) > 3900:
+            return
+        requests.post(NTFY + '/' + TOPIC, data=body.encode('utf-8'),
+                      headers={'Content-Type': 'text/plain; charset=utf-8',
+                               'Title': 'AWB', 'Tags': 'baseball'}, timeout=10)
+    except Exception as e:
+        print('publish fail', e)
 
 KST = datetime.timezone(datetime.timedelta(hours=9))
 DATA = os.path.join(ROOT, 'data')
@@ -82,6 +119,7 @@ def main():
         txt = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
         js = 'window.V212_RECEIVE&&window.V212_RECEIVE(' + txt + ');'
         write_atomic(os.path.join(DATA, 'intl_live.json'), txt)
+        publish(data)
         write_atomic(os.path.join(DATA, 'intl_live.js'), js)
         # manifest 의 checked_at(서버 정기점검 시각) 갱신
         mp = os.path.join(DATA, 'manifest.json')
