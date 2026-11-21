@@ -1,6 +1,6 @@
 {
  "schema_version": 2,
- "app_version": "v21.4",
+ "app_version": "v21.5",
  "updated_at": "2026-11-21T19:20:50+09:00",
  "data_through": "2026-11-21",
  "note": "앱(v21.1 이상)이 맨 먼저 이 파일을 읽어 sha256 이 바뀐 청크만 내려받는다. 청크 본문은 KBO_DATA 전 영역 + 앱 내장 전역 데이터셋 전체이며, 앱은 제자리(in-place)로 덮어쓴다. 각 청크는 <id>.json(정본) 과 같은 내용의 <id>.js(JSONP, file:// 대비) 두 형태로 올라간다.",
@@ -15,14 +15,15 @@
    "globals": [
     "KBO_DATA"
    ],
-   "about": "KBO_DATA 에서 경기 두 묶음만 뺀 전부 (순위·팀스탯·타자·투수·파크팩터·FA·리그)"
+   "about": "KBO_DATA 에서 경기 두 묶음만 뺀 전부 (순위·팀스탯·타자·투수·파크팩터·FA·리그)",
+   "js_bytes": 3991224
   },
   {
    "id": "extra",
    "path": "data/extra.json",
    "js": "data/extra.js",
-   "sha256": "02d5089af73a20b7ea0f63f96dfef5c8a65bcf8899a458b790a6d00dae3778b9",
-   "bytes": 851102,
+   "sha256": "74f50bbdc376b581c405dae36fc5d42e3eb2cceeebad49c1ea853a511c94ffbf",
+   "bytes": 1002789,
    "updated_at": "2026-11-21T19:20:50+09:00",
    "globals": [
     "V193_ENTRY_DATA",
@@ -31,7 +32,7 @@
     "V177_PRACTICE_RESULT"
    ],
    "about": "등·말소 엔트리·뉴스 스냅샷·국제대회·연습경기 결과",
-   "js_bytes": 851146
+   "js_bytes": 1002833
   },
   {
    "id": "zone_pitch",
@@ -45,14 +46,15 @@
     "V168_ZONE_PCT",
     "V162_PITCH_DATA"
    ],
-   "about": "핫콜드존·ABS존·존 비율·구종"
+   "about": "핫콜드존·ABS존·존 비율·구종",
+   "js_bytes": 2275391
   },
   {
    "id": "season",
    "path": "data/season.json",
    "js": "data/season.js",
-   "sha256": "c2a1d7ce30e1acea6a80ce2dce8e6f079ec210328ea0de4f169282d286a29953",
-   "bytes": 8922503,
+   "sha256": "aa28e2d5c1985d54a4c9de3c4adf7fcf0063edfd322ce0c7688eef85aa859924",
+   "bytes": 8904581,
    "updated_at": "2026-11-21T19:04:55+09:00",
    "globals": [
     "V159_YEARS",
@@ -71,7 +73,8 @@
     "V167_INTL_NAMES",
     "V176_PRACTICE_MEDIA"
    ],
-   "about": "3개년 기록·상황별 성적·구장별·수비·서배이런트·키·프로필"
+   "about": "3개년 기록·상황별 성적·구장별·수비·서배이런트·키·프로필",
+   "js_bytes": 8904625
   },
   {
    "id": "kbo1_games",
@@ -83,7 +86,8 @@
    "globals": [
     "KBO_DATA.kbo1_games"
    ],
-   "about": "1군 박스스코어 전 경기"
+   "about": "1군 박스스코어 전 경기",
+   "js_bytes": 6545145
   },
   {
    "id": "futures_games",
@@ -95,11 +99,12 @@
    "globals": [
     "KBO_DATA.futures_games"
    ],
-   "about": "퓨처스 박스스코어 전 경기"
+   "about": "퓨처스 박스스코어 전 경기",
+   "js_bytes": 4540433
   }
  ],
  "live_patch": null,
- "total_bytes": 27125625,
+ "total_bytes": 27259390,
  "checked_at": "2026-11-21T19:20:50+09:00",
  "intl_live": {
   "bytes": 2646,
