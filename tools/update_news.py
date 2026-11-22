@@ -84,6 +84,23 @@ ex_js_bytes = b'window.V211_RECEIVE&&window.V211_RECEIVE(' + ex_bytes + b');\n'
 with open(ex_js_path, 'wb') as f:
     f.write(ex_js_bytes)
 
+# v22.0 — 뉴스만 따로 받는 작은 파일(약 80KB). 앱의 알림판 '새 소식 확인'이
+#   extra.json(4.4MB) 청크 동기화를 기다리지 않고 이 파일을 캐시 버스터로 직접 받는다.
+news_obj = {
+    'built': ns['built'],
+    'yna': ns.get('yna') or [],
+    'naver': ns.get('naver') or [],
+    'kbo': ns.get('kbo') or [],
+    'gnews': ns.get('gnews') or [],
+    'intl': ns.get('intl') or [],
+}
+news_bytes = json.dumps(news_obj, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+with open(os.path.join(repo, 'data/news.json'), 'wb') as f:
+    f.write(news_bytes)
+with open(os.path.join(repo, 'data/news.js'), 'wb') as f:
+    f.write(b'/* KBO Pro Analyst Studio - news snapshot (v22.0) */\n')
+    f.write(b'window.V220_NEWS&&window.V220_NEWS(' + news_bytes + b');\n')
+
 sha = hashlib.sha256(ex_bytes).hexdigest()
 mf = json.load(open(mf_path, encoding='utf-8'))
 mf['updated_at'] = now_iso
@@ -119,4 +136,5 @@ with open(lp_js_path, 'w', encoding='utf-8') as f:
 
 print('Updated V164_NEWS_SNAPSHOT.built:', ns['built'])
 print('gnews top 5:', [(x['date'], x['time'], x['title'][:35]) for x in ns['gnews'][:5]])
+print('news.json bytes:', len(news_bytes))
 print('extra sha256:', sha, 'bytes:', len(ex_bytes))
