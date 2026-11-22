@@ -17,11 +17,16 @@ KBO 분석 스튜디오 앱(**v21.1 이상**)이 열릴 때 스스로 읽어 반
 | `data/kbo1_games.json` | `KBO_DATA.kbo1_games` — 1군 박스스코어 전 경기(869) | 6.55MB |
 | `data/futures_games.json` | `KBO_DATA.futures_games` — 퓨처스 박스스코어 전 경기(756) | 4.54MB |
 
+| `data/news.json` | `V164_NEWS_SNAPSHOT` 만 따로 (뉴스 전용, 약 110KB) — 앱 v22.0 알림판 「새 소식 확인」이 캐시 없는 GitHub API 로 먼저 받는다 | 0.11MB |
+
 - 각 청크는 **`<id>.json`(정본)** 과 **`<id>.js`(같은 바이트를 `window.V211_RECEIVE(...)` 로 감싼 사본)** 두 형태로 올라갑니다.
   · `.json` — `raw.githubusercontent.com` (fetch, CORS `*`)
   · `.js` — `raw.githack.com` · `cdn.jsdelivr.net` (앱을 `file://` 로 열어 fetch 가 막힐 때 script 로더용)
 - 앱은 받은 값을 **제자리(in-place)로 덮어씁니다**. `const KBO_DATA` 처럼 재할당이 안 되는 참조도 그대로 살아 있고,
   배열은 길이를 0으로 만든 뒤 채우고 객체는 키 단위로 덮습니다. 앱의 함수·계산식·UI는 건드리지 않습니다.
+- `data/news.json`·`news.js` 는 `extra.json` 안의 뉴스 스냅샷만 떼어 낸 작은 사본입니다(`tools/update_news.py` 가 함께 갱신).
+  알림판의 「새 소식 확인」은 이 파일을 **`api.github.com` contents(캐시 없음) → raw → githack → jsdelivr** 순으로 받아 즉시 반영하고,
+  4.4MB `extra` 청크 동기화는 정기 주기에 맡깁니다(v22.0).
 - 앱은 청크를 `IndexedDB('v211_kbo_cache')` 에 저장합니다. 다음에 열 때는 manifest 확인 전에 저장본으로 먼저 켜지므로
   오프라인·비행기모드에서도 마지막 최신 데이터로 동작합니다.
 
