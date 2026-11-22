@@ -58,10 +58,20 @@ def load_names(path='names.json'):
     return by_acnt, by_zh
 
 
+# AWB 명단 페이지에 아직 없는 선수(추가 등록) — 이름이 비면 라인업 칸이 통째로 빈다.
+#  2026-11-22 AWB 공식 문자중계·박스스코어에서 확인: 漁竣棲=어준서(키움, 92), 權赫彬=권혁빈(키움, 00)
+EXTRA_NAMES = {'0000008094': '어준서', '0000008095': '권혁빈'}
+EXTRA_ZH = {'漁竣棲': '어준서', '權赫彬': '권혁빈'}
+
+
 def name_of(acnt, zh, names):
     v = names.get(str(acnt))
     if v:
         return v['ko']
+    if str(acnt) in EXTRA_NAMES:
+        return EXTRA_NAMES[str(acnt)]
+    if zh and str(zh).strip() in EXTRA_ZH:
+        return EXTRA_ZH[str(zh).strip()]
     return ''
 
 
@@ -91,7 +101,7 @@ def parse_lineups(first, names):
             for r in rows2[1:]:
                 nm2 = name_of(r['Acnt'], r['CHName'], names)
                 ps2 = POS.get(r['DefendStationCode'], r['DefendStationCode'])
-                key2 = (nm2, ps2)
+                key2 = nm2 or ps2
                 if key2 in seen_sub:
                     continue
                 seen_sub.add(key2)
@@ -122,9 +132,14 @@ def parse_lineups(first, names):
 
 
 def parse_scoreboard(sb, codes):
-    """ScoreboardJson → 팀별 이닝 배열 + R/H/E"""
+    """ScoreboardJson → 팀별 이닝 배열 + R/H/E.
+
+    응답 행은 이닝 내림차순(9→1)으로 온다 — 그대로 담으면 이닝이 거꾸로 뒤집혀
+    스코어보드·승률 곡선이 엉뚱한 이닝에 점수를 찍는다(2026-11-22 확인).
+    """
     res = {}
-    for r in sb or []:
+    rows = sorted(sb or [], key=lambda r: float(r.get('InningSeq') or 0))
+    for r in rows:
         t = r['TeamNo']
         d = res.setdefault(t, {'inn': [], 'r': 0, 'h': 0, 'e': 0})
         d['inn'].append(int(r['ScoreCnt'] or 0))
@@ -167,6 +182,33 @@ def parse_plays(live, names):
         })
         last_state = x
     return plays, last_state
+
+
+def ip_text(whole, frac):
+    return ('%d %d/3' % (whole, frac)) if frac else str(whole)
+
+
+def parse_pitching(pitj, names):
+    """PitchingJson → 팀별 투구 기록. 시즌 ERA 는 Total* 값으로 계산한다(공식 표와 같은 값)."""
+    out = {}
+    for p in pitj or []:
+        side = 'away' if str(p.get('VisitingHomeType')) == '1' else 'home'
+        whole = int(p.get('InningPitchedCnt') or 0)
+        frac = int(p.get('InningPitchedDiv3Cnt') or 0)
+        t_ip = float(p.get('TotalInningPitched') or 0) + float(p.get('TotalInningPitchedDiv3') or 0) / 3.0
+        era = round(float(p.get('TotalEarnedRunCnt') or 0) * 9 / t_ip, 2) if t_ip else None
+        out.setdefault(side, []).append({
+            'name': name_of(p.get('PitcherAcnt'), p.get('PitcherName'), names),
+            'ip': ip_text(whole, frac), 'ip_num': round(whole + frac / 3.0, 3),
+            'bf': int(p.get('PlateAppearances') or 0), 'np': int(p.get('PitchCnt') or 0),
+            'strikes': int(p.get('StrikeCnt') or 0),
+            'h': int(p.get('HittingCnt') or 0), 'hr': int(p.get('HomeRunCnt') or 0),
+            'bb': int(p.get('BasesONBallsCnt') or 0), 'hbp': int(p.get('HitBYPitchCnt') or 0),
+            'so': int(p.get('StrikeOutCnt') or 0),
+            'r': int(p.get('RunCnt') or 0), 'er': int(p.get('EarnedRunCnt') or 0),
+            'era': era, 'role': p.get('RoleType') or '', 'res': p.get('GameResult') or '',
+        })
+    return out
 
 
 def parse_subs(live, names):
@@ -270,8 +312,8 @@ def wp_sim(rate, inning, half, outs, bases, diff, n=6000, seed=7):
     return float(np.mean(d < 0))
 
 
-def wp_series(rate, plays, kbo_code, away_code):
-    """각 플레이 직후 KBO 팀 승리 확률(%)"""
+def wp_series(rate, plays, kbo_code, away_code, live=False):
+    """각 플레이 직후 KBO 팀 승리 확률(%). live 면 2~98% 로 자른다(경기 중 0/100 금지)."""
     pts = []
     last = None
     for p in plays:
@@ -284,7 +326,10 @@ def wp_series(rate, plays, kbo_code, away_code):
         pw = wp_sim(rate, key[0], key[1], key[2], key[3], key[4], n=4000, seed=11)
         if kbo_code != away_code:
             pw = 1 - pw
-        pts.append({'inn': p['inn'], 'half': p['half'], 'p': round(pw * 100, 1)})
+        v = pw * 100
+        if live:
+            v = max(2.0, min(98.0, v))
+        pts.append({'inn': p['inn'], 'half': p['half'], 'p': round(v, 1)})
     return pts
 
 
@@ -330,6 +375,7 @@ def build(schedule_path='raw/schedule.json', raw_dir='raw', names_path='names.js
             'no': g['GameSno'], 'date': gd, 'time_kst': tw_to_kst(cur.get('PreExeDate') or g['GameDateTimeS']),
             'park': PARKS.get(cur.get('FieldAbbe') or g['FieldAbbe'], cur.get('FieldAbbe') or g['FieldAbbe']),
             'status': status, 'status_ko': status_ko,
+            'checked_at': now.strftime('%Y-%m-%dT%H:%M:%S+09:00'),
             'away': {'code': code_v, 'name': TEAMS.get(code_v, {}).get('ko', g['VisitingTeamName']),
                      'flag': TEAMS.get(code_v, {}).get('flag', '')},
             'home': {'code': code_h, 'name': TEAMS.get(code_h, {}).get('ko', g['HomeTeamName']),
@@ -360,16 +406,19 @@ def build(schedule_path='raw/schedule.json', raw_dir='raw', names_path='names.js
             item['plays'] = plays[-40:]
             item['subs'] = parse_subs(live, pairs)
             if last:
+                inn_s = int(last.get('InningSeq') or 0)
+                half_s = '초' if str(last.get('VisitingHomeType')) == '1' else '말'
                 item['state'] = {
-                    'inn': int(last.get('InningSeq') or 0),
-                    'half': '초' if str(last.get('VisitingHomeType')) == '1' else '말',
+                    'inn': inn_s, 'half': half_s, 'inn_ko': '%d회%s' % (inn_s, half_s) if inn_s else '',
                     'outs': int(last.get('OutCnt') or 0),
                     'b': int(last.get('BallCnt') or 0), 's': int(last.get('StrikeCnt') or 0),
                     'bases': [bool(last.get('FirstBase')), bool(last.get('SecondBase')), bool(last.get('ThirdBase'))],
-                    'runner1': name_of('', last.get('FirstBase'), names) if False else '',
                     'batter': name_of(last.get('HitterAcnt'), last.get('HitterName'), names),
                     'pitcher': name_of(last.get('PitcherAcnt'), last.get('PitcherName'), names),
+                    'pitch': int(last.get('PitchCnt') or 0) if last.get('PitchCnt') is not None else 0,
                 }
+                if plays:
+                    item['state']['last'] = plays[-1]['batter'] + ' ' + (plays[-1].get('act') or '')
             try:
                 first = json.loads(d.get('FirstSnoJson') or '[]')
             except Exception:
@@ -383,14 +432,57 @@ def build(schedule_path='raw/schedule.json', raw_dir='raw', names_path='names.js
             box = {}
             for side, code in (('away', code_v), ('home', code_h)):
                 rows = [b for b in bat if str(b.get('VisitingHomeType')) == ('1' if side == 'away' else '2')]
-                box[side] = [{'name': name_of(b.get('HitterAcnt'), b.get('HitterName'), names),
-                              'pa': int(b.get('PlateAppearances') or 0),
-                              'h': int(b.get('HitCnt') or 0), 'hr': int(b.get('HomeRunCnt') or 0),
-                              'rbi': int(b.get('RunBattedINCnt') or 0), 'r': int(b.get('ScoreCnt') or 0),
-                              'bb': int(b.get('BasesONBallsCnt') or 0), 'so': int(b.get('StrikeOutCnt') or 0)}
-                             for b in rows]
+                out = []
+                for b in rows:
+                    t_ab = int(b.get('TotalHitCnt') or 0)
+                    t_h = int(b.get('TotalHittingCnt') or 0)
+                    out.append({
+                        'name': name_of(b.get('HitterAcnt'), b.get('HitterName'), names),
+                        'ab': int(b.get('HitCnt') or 0), 'pa': int(b.get('PlateAppearances') or 0),
+                        'h': int(b.get('HittingCnt') or 0), 'hr': int(b.get('HomeRunCnt') or 0),
+                        'rbi': int(b.get('RunBattedINCnt') or 0), 'r': int(b.get('ScoreCnt') or 0),
+                        'b2': int(b.get('TwoBaseHitCnt') or 0), 'b3': int(b.get('ThreeBaseHitCnt') or 0),
+                        'bb': int(b.get('BasesONBallsCnt') or 0), 'hbp': int(b.get('HitBYPitchCnt') or 0),
+                        'so': int(b.get('StrikeOutCnt') or 0), 'sb': int(b.get('StealBaseOKCnt') or 0),
+                        'e': int(b.get('ErrorCnt') or 0),
+                        'avg': round(t_h / t_ab, 3) if t_ab else None,
+                    })
+                box[side] = out
             item['box'] = box
-            item['wp'] = wp_series(rate, plays, 'ZZZ041', code_v)
+            item['away_lineup'] = [dict(x, bat_order='') for x in box['away']]
+            item['home_lineup'] = [dict(x, bat_order='') for x in box['home']]
+            # 타순(공식 라인업)을 box 행에 붙인다 — 같은 이름만
+            for side in ('away', 'home'):
+                lm = {}
+                for p2 in ((item.get('lineup') or {}).get(side) or {}).get('batting') or []:
+                    lm[p2.get('name')] = str(p2.get('order') or '')
+                for r in item[side + '_lineup']:
+                    r['bat_order'] = lm.get(r.get('name'), '')
+            try:
+                pit = json.loads(d.get('PitchingJson') or '[]')
+            except Exception:
+                pit = []
+            item['pitchers'] = parse_pitching(pit, names)
+            # 홈팀이 앞선 채 9회초에 끝난 경기는 9회말을 치르지 않는다 → 0 이 아니라 '-' 로 둔다
+            if status == 'final':
+                ih = item['score']['inn_home']
+                if len(ih) == 9 and ih[8] == 0 and item['score']['home'] > item['score']['away']:
+                    ih[8] = None
+            item['innings'] = {'away': item['score']['inn_away'], 'home': item['score']['inn_home']}
+            item['rhe'] = {'away': [item['score']['away'], item['score']['away_h'], item['score']['away_e']],
+                           'home': [item['score']['home'], item['score']['home_h'], item['score']['home_e']]}
+            item['wp'] = wp_series(rate, plays, 'ZZZ041', code_v, live=(status == 'live'))
+            st0 = item.get('state') or {}
+            if status == 'live' and st0:
+                bs = st0.get('bases') or [False, False, False]
+                base = (1 if bs[0] else 0) | (2 if bs[1] else 0) | (4 if bs[2] else 0)
+                diff0 = item['score']['home'] - item['score']['away']
+                pw0 = wp_sim(rate, int(st0.get('inn') or 1), 0 if st0.get('half') == '초' else 1,
+                             min(int(st0.get('outs') or 0), 2), base, diff0, n=6000, seed=11)
+                if 'ZZZ041' != code_v:
+                    pw0 = 1 - pw0
+                item['wp'] = (item.get('wp') or []) + [{'inn': st0.get('inn'), 'half': st0.get('half'),
+                                                        'p': round(max(2.0, min(98.0, pw0 * 100)), 1)}]
         else:
             item['starters'] = {'away': zk(cur.get('VisitingFirstMover', '')), 'home': zk(cur.get('HomeFirstMover', ''))}
         out_games.append(item)

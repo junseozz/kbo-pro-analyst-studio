@@ -84,7 +84,7 @@ def one_pass(sess, year, games, names_path):
         except Exception as e:
             print('box fail', g['GameSno'], e)
     return awb_build.build(schedule_path=os.path.join(RAW, 'schedule.json'),
-                           raw_dir=RAW, names_path=names_path)
+                           raw_dir=RAW, names_path=names_path, include_final=True)
 
 
 def main():
