@@ -1,7 +1,7 @@
 {
  "schema_version": 2,
  "app_version": "v21.7",
- "updated_at": "2026-11-22T09:53:12+09:00",
+ "updated_at": "2026-11-22T10:21:42+09:00",
  "data_through": "2026-11-21",
  "note": "앱(v21.1 이상)이 맨 먼저 이 파일을 읽어 sha256 이 바뀐 청크만 내려받는다. 청크 본문은 KBO_DATA 전 영역 + 앱 내장 전역 데이터셋 전체이며, 앱은 제자리(in-place)로 덮어쓴다. 각 청크는 <id>.json(정본) 과 같은 내용의 <id>.js(JSONP, file:// 대비) 두 형태로 올라간다.",
  "chunks": [
@@ -9,9 +9,9 @@
    "id": "core",
    "path": "data/core.json",
    "js": "data/core.js",
-   "sha256": "7928482a9d4d1cfc874c3d346391249e07dd64dd619285f98e549bcfbb011974",
-   "bytes": 3991180,
-   "updated_at": "2026-11-21T19:00:49+09:00",
+   "sha256": "230c61124f1fcaabc19943de6a8f5579b95f4e36797d10c172e9db17d79a4bc7",
+   "bytes": 3991939,
+   "updated_at": "2026-11-22T10:21:43+09:00",
    "globals": [
     "KBO_DATA"
    ],
@@ -22,9 +22,9 @@
    "id": "extra",
    "path": "data/extra.json",
    "js": "data/extra.js",
-   "sha256": "fdec1901ca2769c91266c78e16f1dfaa74f5ee3923f6ea49d5a3e805918ecfd1",
-   "bytes": 2652601,
-   "updated_at": "2026-11-22T09:53:12+09:00",
+   "sha256": "460f87288a04d10e5b94ffd1ae8a07a9dfb2f397c28e4d5ae97cfba1d9b33ade",
+   "bytes": 2652885,
+   "updated_at": "2026-11-22T10:21:42+09:00",
    "globals": [
     "V193_ENTRY_DATA",
     "V164_NEWS_SNAPSHOT",
@@ -32,7 +32,7 @@
     "V177_PRACTICE_RESULT"
    ],
    "about": "등·말소 엔트리·뉴스 스냅샷·국제대회·연습경기 결과",
-   "js_bytes": 2652645
+   "js_bytes": 2652929
   },
   {
    "id": "zone_pitch",
@@ -104,8 +104,8 @@
   }
  ],
  "live_patch": null,
- "total_bytes": 28904712,
- "checked_at": "2026-11-22T09:53:12+09:00",
+ "total_bytes": 28905755,
+ "checked_at": "2026-11-22T10:21:42+09:00",
  "intl_live": {
   "bytes": 19545,
   "sha256": "dc87a54203d01e4180e33c186af8263476b1046367c1b7e7eb91c75c502127c1",
