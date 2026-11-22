@@ -22,9 +22,9 @@
    "id": "extra",
    "path": "data/extra.json",
    "js": "data/extra.js",
-   "sha256": "f3483ea88ebc3536d7be1d6a288dd891be23ef1938ac6ac671187fe61ad6eb91",
-   "bytes": 2653332,
-   "updated_at": "2026-11-22T11:52:59+09:00",
+   "sha256": "6d3b79dd2a0f4eced26a0acb7935dc62f6e26bba113b91f7315a902330ec3095",
+   "bytes": 4475323,
+   "updated_at": "2026-11-22T12:01:03+09:00",
    "globals": [
     "V193_ENTRY_DATA",
     "V164_NEWS_SNAPSHOT",
@@ -104,7 +104,7 @@
   }
  ],
  "live_patch": null,
- "total_bytes": 28907976,
+ "total_bytes": 30729967,
  "checked_at": "2026-11-22T11:52:59+09:00",
  "intl_live": {
   "bytes": 19545,
