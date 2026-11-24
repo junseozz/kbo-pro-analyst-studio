@@ -65,13 +65,13 @@ EXTRA_ZH = {'漁竣棲': '어준서', '權赫彬': '권혁빈'}
 
 
 def name_of(acnt, zh, names):
-    v = names.get(str(acnt))
-    if v:
-        return v['ko']
     if str(acnt) in EXTRA_NAMES:
         return EXTRA_NAMES[str(acnt)]
     if zh and str(zh).strip() in EXTRA_ZH:
         return EXTRA_ZH[str(zh).strip()]
+    v = names.get(str(acnt))
+    if v:
+        return v['ko']
     return ''
 
 
