@@ -1,0 +1,39 @@
+name: KBO Auto Sync
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: kbo-auto-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests numpy pypinyin
+      - name: Update news & AWB
+        env:
+          AWB_LOOP_SEC: '120'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python tools/update_news.py
+          python tools/verify_manifest.py --fix
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: auto news & manifest sync"
+            git pull --rebase origin main
+            git push origin main
+          fi
+          python tools/awb_sync.py || true
