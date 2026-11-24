@@ -83,10 +83,25 @@ def check_kbo_official_status():
     if info['kbo1_reg_date'] or info['futures_reg_date']:
         lp.setdefault('ai_facts', {})
         if isinstance(lp['ai_facts'], dict):
-            lp['ai_facts']['official_check'] = (
+            prev_fact = str(lp['ai_facts'].get('official_check') or '')
+            new_fact = (
                 f"KBO 1군 등록 기준 {info['kbo1_reg_date'] or '-'} · "
                 f"퓨처스 등록 기준 {info['futures_reg_date'] or '-'} · 최종 점검 {today_str}"
             )
+            # 공식 등록 기준일이 실제로 바뀌었을 때만 notices에 자동 알림 추가
+            for label, dt_val in [('1군 등록 현황', info['kbo1_reg_date']), ('퓨처스 등록 현황', info['futures_reg_date'])]:
+                if dt_val and prev_fact and dt_val not in prev_fact:
+                    nt = f'KBO 공식 {label} 갱신 ({dt_val})'
+                    if nt not in existing_titles:
+                        lp['notices'] = ([{
+                            'date': today_str,
+                            'tag': '등록변동',
+                            'title': nt,
+                            'detail': 'KBO 공식 등록 페이지 기준일 변경 감지'
+                        }] + (lp.get('notices') or []))[:30]
+                        existing_titles.add(nt)
+                        info['new_notices'] += 1
+            lp['ai_facts']['official_check'] = new_fact
 
     with open(lp_path, 'w', encoding='utf-8') as f:
         json.dump(lp, f, ensure_ascii=False, indent=1)
