@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, urllib.request, urllib.parse, xml.etree.ElementTree as ET, email.utils, datetime, hashlib, re, os
+import json, urllib.request, urllib.parse, xml.etree.ElementTree as ET, email.utils, datetime, hashlib, re, os, html as html_mod
 
 repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ex_path = os.path.join(repo, 'data/extra.json')
@@ -14,6 +14,16 @@ ns = ex['V164_NEWS_SNAPSHOT']
 kst = datetime.timezone(datetime.timedelta(hours=9))
 now = datetime.datetime.now(kst)
 now_iso = now.isoformat(timespec='seconds')
+
+def merge_items(new_list, old_list, limit=60):
+    merged, seen = [], set()
+    for item in sorted((new_list or []) + (old_list or []), key=lambda x: x.get('ts', 0), reverse=True):
+        t = re.sub(r'\s+', ' ', item.get('title', '')).strip()
+        if not t or t in seen:
+            continue
+        seen.add(t)
+        merged.append(item)
+    return merged[:limit]
 
 def fetch_gnews(q):
     url = 'https://news.google.com/rss/search?q=' + urllib.parse.quote(q) + '&hl=ko&gl=KR&ceid=KR:ko'
@@ -52,26 +62,139 @@ def fetch_gnews(q):
         })
     return out
 
-new_kbo = fetch_gnews('KBO when:1d') + fetch_gnews('프로야구 when:1d') + fetch_gnews('KBO FA 트레이드 when:1d')
-new_awb = fetch_gnews('아시아 윈터 베이스볼 when:1d') + fetch_gnews('KBO 연합팀 when:1d')
+def fetch_yna():
+    url = 'https://www.yna.co.kr/rss/sports.xml'
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        xml_data = r.read()
+    root = ET.fromstring(xml_data)
+    kw = ('야구', 'KBO', '프로야구', '두산', 'LG', '삼성', 'KIA', 'SSG', '한화', '롯데', 'NC', 'KT', '키움', '상무', '퓨처스', '윈터리그', '메이저리그', 'MLB', '포스팅', '골든글러브', 'FA ')
+    exclude_kw = ('축구', 'FIFA', 'K리그', '농구', 'KBL', '배구', 'V리그', '골프', 'LPGA', 'KPGA', '테니스', '바둑')
+    out = []
+    for item in root.findall('./channel/item'):
+        title = (item.findtext('title') or '').strip()
+        link = (item.findtext('link') or '').strip()
+        pub = (item.findtext('pubDate') or '').strip()
+        desc = (item.findtext('description') or '').strip()
+        text = title + ' ' + desc
+        if any(ek in text for ek in exclude_kw):
+            continue
+        if not (any(k in text for k in kw) or re.search(r'(?<![A-Z])FA(?![A-Z])', text)):
+            continue
+        try:
+            dt = email.utils.parsedate_to_datetime(pub).astimezone(kst)
+        except Exception:
+            continue
+        if (now - dt).days > 14:
+            continue
+        out.append({
+            'title': title,
+            'link': link,
+            'route': 'yna',
+            'src': '연합뉴스',
+            'date': dt.strftime('%Y-%m-%d'),
+            'time': dt.strftime('%H:%M'),
+            'ts': int(dt.strftime('%Y%m%d%H%M')),
+            'summary': ''
+        })
+    return out
 
-merged_gnews, seen = [], set()
-for item in sorted(new_kbo + (ns.get('gnews') or []), key=lambda x: x.get('ts', 0), reverse=True):
-    t = re.sub(r'\s+', ' ', item.get('title', '')).strip()
-    if not t or t in seen:
-        continue
-    seen.add(t)
-    merged_gnews.append(item)
-ns['gnews'] = merged_gnews[:60]
+def fetch_kbo():
+    url = 'https://www.koreabaseball.com/MediaNews/Notice/List.aspx'
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        page = r.read().decode('utf-8', 'ignore')
+    out = []
+    for m in re.finditer(r'<tr[^>]*>(.*?)</tr>', page, re.S):
+        row = m.group(1)
+        a = re.search(r'<a[^>]+href="([^"]*View\.aspx[^"]*)"[^>]*>(.*?)</a>', row, re.S)
+        dm = re.search(r'(20\d{2})\.(\d{2})\.(\d{2})', row)
+        if not (a and dm):
+            continue
+        href = html_mod.unescape(a.group(1)).strip()
+        if href.startswith('/'):
+            href = 'https://www.koreabaseball.com' + href
+        title = re.sub(r'\s+', ' ', html_mod.unescape(re.sub(r'<[^>]+>', '', a.group(2)))).strip()
+        if not title:
+            continue
+        dt_str = f'{dm.group(1)}-{dm.group(2)}-{dm.group(3)}'
+        out.append({
+            'title': title,
+            'link': href,
+            'route': 'kbo',
+            'src': 'KBO 보도자료',
+            'date': dt_str,
+            'time': '',
+            'ts': int(f'{dm.group(1)}{dm.group(2)}{dm.group(3)}0000'),
+            'summary': ''
+        })
+    return out
 
-merged_intl, seen_i = [], set()
-for item in sorted(new_awb + (ns.get('intl') or []), key=lambda x: x.get('ts', 0), reverse=True):
-    t = re.sub(r'\s+', ' ', item.get('title', '')).strip()
-    if not t or t in seen_i:
-        continue
-    seen_i.add(t)
-    merged_intl.append(item)
-ns['intl'] = merged_intl[:60]
+def fetch_naver():
+    out, seen_href = [], set()
+    for q in ['KBO 프로야구', '프로야구 FA 외국인']:
+        url = 'https://m.search.naver.com/search.naver?where=m_news&query=' + urllib.parse.quote(q) + '&sort=1'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36'})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            page = r.read().decode('utf-8', 'ignore')
+        for m in re.finditer(r'<a[^>]+href="(https?://m\.sports\.naver\.com/kbaseball/article/[^"]+)"[^>]*>(.*?)</a>', page, re.S):
+            href = html_mod.unescape(m.group(1)).split('?')[0]
+            if href in seen_href:
+                continue
+            title = re.sub(r'\s+', ' ', html_mod.unescape(re.sub(r'<[^>]+>', '', m.group(2)))).strip()
+            if len(title) < 10 or '네이버뉴스' in title:
+                continue
+            seen_href.add(href)
+            ctx = re.sub(r'<[^>]+>', ' ', page[max(0, m.start() - 600):min(len(page), m.start() + 300)])
+            dt = now
+            tm = re.search(r'(\d+)\s*분\s*전', ctx)
+            th = re.search(r'(\d+)\s*시간\s*전', ctx)
+            td = re.search(r'(20\d{2})\.(\d{2})\.(\d{2})\.', ctx)
+            if tm:
+                dt = now - datetime.timedelta(minutes=int(tm.group(1)))
+            elif th:
+                dt = now - datetime.timedelta(hours=int(th.group(1)))
+            elif td:
+                dt = datetime.datetime(int(td.group(1)), int(td.group(2)), int(td.group(3)), 9, 0, tzinfo=kst)
+            out.append({
+                'title': title,
+                'link': href,
+                'route': 'naver',
+                'src': '네이버 스포츠',
+                'date': dt.strftime('%Y-%m-%d'),
+                'time': dt.strftime('%H:%M'),
+                'ts': int(dt.strftime('%Y%m%d%H%M')),
+                'summary': ''
+            })
+    return out
+
+new_kbo_gnews, new_awb, new_yna, new_kbo_off, new_naver = [], [], [], [], []
+try:
+    new_kbo_gnews = fetch_gnews('KBO when:1d') + fetch_gnews('프로야구 when:1d') + fetch_gnews('KBO FA 트레이드 when:1d')
+except Exception as e:
+    print('gnews err:', e)
+try:
+    new_awb = fetch_gnews('아시아 윈터 베이스볼 when:1d') + fetch_gnews('KBO 연합팀 when:1d')
+except Exception as e:
+    print('intl err:', e)
+try:
+    new_yna = fetch_yna()
+except Exception as e:
+    print('yna err:', e)
+try:
+    new_kbo_off = fetch_kbo()
+except Exception as e:
+    print('kbo err:', e)
+try:
+    new_naver = fetch_naver()
+except Exception as e:
+    print('naver err:', e)
+
+ns['gnews'] = merge_items(new_kbo_gnews, ns.get('gnews'), 60)
+ns['intl'] = merge_items(new_awb, ns.get('intl'), 60)
+ns['yna'] = merge_items(new_yna, ns.get('yna'), 40)
+ns['kbo'] = merge_items(new_kbo_off, ns.get('kbo'), 40)
+ns['naver'] = merge_items(new_naver, ns.get('naver'), 60)
 
 ns['built'] = now.strftime('%Y-%m-%d %H:%M:%S')
 ex['V164_NEWS_SNAPSHOT'] = ns
@@ -84,8 +207,6 @@ ex_js_bytes = b'window.V211_RECEIVE&&window.V211_RECEIVE(' + ex_bytes + b');\n'
 with open(ex_js_path, 'wb') as f:
     f.write(ex_js_bytes)
 
-# v22.0 — 뉴스만 따로 받는 작은 파일(약 80KB). 앱의 알림판 '새 소식 확인'이
-#   extra.json(4.4MB) 청크 동기화를 기다리지 않고 이 파일을 캐시 버스터로 직접 받는다.
 news_obj = {
     'built': ns['built'],
     'yna': ns.get('yna') or [],
@@ -105,8 +226,6 @@ sha = hashlib.sha256(ex_bytes).hexdigest()
 mf = json.load(open(mf_path, encoding='utf-8'))
 mf['updated_at'] = now_iso
 mf['checked_at'] = now_iso
-# 청크 식별자는 id 다(과거 name 으로 비교해 extra 의 sha256·bytes 가 갱신되지 않아
-# 앱이 "바뀐 청크 없음"으로 판단하고 새 뉴스를 영영 받지 않던 결함을 고쳤다 — 2026-11-21)
 for ch in mf.get('chunks', []):
     if ch.get('id') == 'extra' or ch.get('name') == 'extra':
         ch['bytes'] = len(ex_bytes)
@@ -117,8 +236,6 @@ mf['total_bytes'] = sum(int(c.get('bytes') or 0) for c in mf.get('chunks', []))
 with open(mf_path, 'w', encoding='utf-8') as f:
     json.dump(mf, f, ensure_ascii=False, indent=1)
     f.write('\n')
-# file:// 환경은 manifest.json fetch 가 막혀 raw.githack 의 manifest.js 를 쓴다.
-# 여기서 함께 갱신하지 않으면 그 경로로는 옛 manifest 가 계속 내려간다.
 with open(os.path.join(repo, 'data/manifest.js'), 'w', encoding='utf-8') as f:
     f.write('window.V211_RECEIVE&&window.V211_RECEIVE('
             + json.dumps(mf, ensure_ascii=False, separators=(',', ':')) + ');')
@@ -135,6 +252,10 @@ with open(lp_js_path, 'w', encoding='utf-8') as f:
     f.write(f'window.V210_RECEIVE && window.V210_RECEIVE({lp_min});\n')
 
 print('Updated V164_NEWS_SNAPSHOT.built:', ns['built'])
-print('gnews top 5:', [(x['date'], x['time'], x['title'][:35]) for x in ns['gnews'][:5]])
+print('counts:', {k: len(ns.get(k) or []) for k in ['yna', 'naver', 'kbo', 'gnews', 'intl']})
+print('yna top2:', [(x['date'], x['time'], x['title'][:30]) for x in ns['yna'][:2]])
+print('naver top2:', [(x['date'], x['time'], x['title'][:30]) for x in ns['naver'][:2]])
+print('kbo top2:', [(x['date'], x['title'][:30]) for x in ns['kbo'][:2]])
+print('gnews top2:', [(x['date'], x['time'], x['title'][:30]) for x in ns['gnews'][:2]])
 print('news.json bytes:', len(news_bytes))
 print('extra sha256:', sha, 'bytes:', len(ex_bytes))
