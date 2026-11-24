@@ -61,9 +61,7 @@ def check_kbo_official_status():
             if not title or title in existing_titles:
                 continue
             # 이미 동일 핵심어가 반영된 공지(예: 구자욱 신분조회, 시상식)는 중복 방지
-            if any(k in title for k in ['구자욱', '시상식', 'FA 승인']) and any(
-                any(k in et for k in ['구자욱', '시상식', 'FA 승인']) and k in title for et in existing_titles
-            ):
+            if any(kw in title and any(kw in et for et in existing_titles) for kw in ['구자욱', '시상식', 'FA 승인']):
                 continue
             existing_titles.add(title)
             added.append({
