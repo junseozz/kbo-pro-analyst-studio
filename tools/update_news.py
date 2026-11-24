@@ -251,6 +251,12 @@ with open(lp_js_path, 'w', encoding='utf-8') as f:
     f.write('/* KBO Pro Analyst Studio — v21.0 live patch (JSONP 대체 로더용 래퍼) */\n')
     f.write(f'window.V210_RECEIVE && window.V210_RECEIVE({lp_min});\n')
 
+try:
+    import sync_kbo_server
+    sync_kbo_server.check_kbo_official_status()
+except Exception as e:
+    print('sync_kbo_server warn:', e)
+
 print('Updated V164_NEWS_SNAPSHOT.built:', ns['built'])
 print('counts:', {k: len(ns.get(k) or []) for k in ['yna', 'naver', 'kbo', 'gnews', 'intl']})
 print('yna top2:', [(x['date'], x['time'], x['title'][:30]) for x in ns['yna'][:2]])
