@@ -105,11 +105,11 @@
  ],
  "live_patch": null,
  "total_bytes": 30777390,
- "checked_at": "2026-11-26T14:05:53+09:00",
+ "checked_at": "2026-11-26T14:06:23+09:00",
  "intl_live": {
-  "bytes": 5907,
-  "sha256": "a7fc2f5beeac13169f800f7eb1618544060227a7a127591ce2e87b0940c5c6ea",
-  "checked_at": "2026-11-26T14:05:53+09:00",
+  "bytes": 11132,
+  "sha256": "7de928f517d3ca262fa0358eadab33440398bb7b8a8e8a47675861f77b27f87c",
+  "checked_at": "2026-11-26T14:06:23+09:00",
   "state": "live"
  }
 }
